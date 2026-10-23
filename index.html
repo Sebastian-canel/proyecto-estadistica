@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <!-- Librería para generar PDF automáticamente -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proyecto Final - Estadística Descriptiva</title>
+    
+    <!-- Hoja de estilos externa -->
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- Librería de gráficos Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* Ocultar todas las pestañas por defecto */
+        .tab-content {
+            display: none;
+        }
+
+        /* Mostrar la pestaña activa estándar */
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Permitir que la pestaña de gráficas mantenga su estructura de cuadrícula */
+        #tabGraficas.active {
+            display: grid; 
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-card">
+    <h1>Proyecto Final: Sistema de Análisis Estadístico</h1>
+    <p class="subtitle">Análisis completo de datos agrupados, tabla de frecuencias y gráficas</p>
+
+    <!-- Nuevo campo para el nombre del ejercicio -->
+    <label for="nombreEjercicio"><strong>Nombre del Ejercicio / Análisis:</strong></label>
+    <input type="text" id="nombreEjercicio" placeholder="Ej. Parcial de Estadística - Grupo 1" style="width: 100%; padding: 8px; margin-bottom: 15px; border: 1px solid #d1d5db; border-radius: 6px;">
+
+    <label for="inputDatos"><strong>Ingrese los valores (40, 80 o más datos separados por comas o espacios):</strong></label>
+    <textarea id="inputDatos" placeholder="Ejemplo: 52, 56, 57, 61, 62, 66, 67, 71, 72, 76, 77, 81, 82, 86..."></textarea>
+    <br>
+
+    <!-- Botones de acción -->
+    <div style="display: flex; gap: 10px; margin-top: 10px;">
+        <button onclick="procesarYGuardarAnalisis()">Procesar y Generar Análisis</button>
+        <button onclick="reiniciarAnalisis()">Generar otro análisis</button>
+        <button onclick="cambiarPestana('tarjetas')" class="tab-btn">Historial de Ejercicios</button>
+    </div>
+
+    <!-- Historial integrado desplegable (Acordeón de tarjetas) -->
+    <div id="bloque-historial-desplegable" style="display: none;">
+        <div style="margin: 20px 0; padding: 15px; background: #fdfdfd; border-radius: 8px; border: 1px solid #e0e0e0;">
+            <h3 style="margin-top: 0; color: #333;">📜 Historial de Ejercicios Recientes</h3>
+            <div id="lista-historial" style="max-height: 220px; overflow-y: auto; margin-top: 10px;">
+                <p style="color: #666; font-size: 14px;">Cargando historial...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vista previa de datos ordenados -->
+    <div id="vistaDatosOrdenados" class="data-preview" style="display:none; margin-top: 15px;">
+        <strong>Datos procesados y ordenados (n):</strong>
+        <div id="listaOrdenadaTexto" style="margin-top: 5px; color: #2d3748;"></div>
+    </div>
+
+    <!-- Pestañas de navegación -->
+    <div id="seccionPestañas" style="display: none;">
+        <div class="nav-tabs">
+            <button class="tab-btn active" onclick="cambiarPestana('tabTabla', this)">Tabla y Cálculos</button>
+            <button class="tab-btn" onclick="cambiarPestana('tabGraficas', this)">Gráficas Estadísticas</button>
+            <button class="tab-btn" onclick="cambiarPestana('historial', this)">Historial Completo (Tabla)</button>
+        </div>
+
+        <!-- Pestaña 1: Tabla y Cálculos -->
+        <div id="tabTabla" class="tab-content active">
+            <h2>1. Generalidades y Regla de Sturges</h2>
+            <div class="box-container">
+                <div class="box"><span>Total de datos (n)</span><p id="valN">-</p></div>
+                <div class="box"><span>Valor Mínimo (Xmín)</span><p id="valMin">-</p></div>
+                <div class="box"><span>Valor Máximo (Xmáx)</span><p id="valMax">-</p></div>
+                <div class="box"><span>Rango (R)</span><p id="valRango">-</p></div>
+                <div class="box"><span>Rango Medio</span><p id="valRangoMedio">-</p></div>
+                <div class="box"><span>Intervalos (k)</span><p id="valK">-</p></div>
+                <div class="box"><span>Amplitud (A)</span><p id="valA">-</p></div>
+            </div>
+
+            <h2>2. Tabla de Frecuencias Agrupada</h2>
+            <div class="table-container">
+                <table class="tabla-estadistica">
+                    <thead>
+                        <tr>
+                            <th colspan="2">CLASES</th>
+                            <th>f</th>
+                            <th>fa</th>
+                            <th>fr (%)</th>
+                            <th>fs</th>
+                            <th>xm</th>
+                            <th>Li</th>
+                            <th>Ls</th>
+                            <th>f*xm</th>
+                        </tr>
+                        <tr>
+                            <th>ii</th>
+                            <th>is</th>
+                            <th colspan="8"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="cuerpoTabla"></tbody>
+                    <tfoot id="pieTabla"></tfoot>
+                </table>
+            </div>
+
+            <h2>3. Medidas de Tendencia Central</h2>
+            <div class="box-container">
+                <div class="box"><span>Media (x̄)</span><p id="valMedia">-</p></div>
+                <div class="box"><span>Mediana (Me)</span><p id="valMediana">-</p></div>
+                <div class="box"><span>Moda (Mo)</span><p id="valModa">-</p></div>
+            </div>
+
+            <h2>4. Medidas de Dispersión</h2>
+            <div class="box-container">
+                <div class="box"><span>Varianza Muestral (s²)</span><p id="valVarianza">-</p></div>
+                <div class="box"><span>Desviación Estándar (s)</span><p id="valDesviacion">-</p></div>
+                <div class="box"><span>Coef. de Variación (CV)</span><p id="valCV">-</p></div>
+            </div>
+
+            <h2>5. Medidas de Posición (Cuantiles)</h2>
+            <div class="cuantiles-controls">
+                <div>
+                    <label>Cuartil (Q1 - Q4): </label>
+                    <input type="number" id="inputQ" value="1" min="1" max="4" onchange="calcularCuantiles()">
+                </div>
+                <div>
+                    <label>Decil (D1 - D10): </label>
+                    <input type="number" id="inputD" value="5" min="1" max="10" onchange="calcularCuantiles()">
+                </div>
+                <div>
+                    <label>Percentil (P1 - P100): </label>
+                    <input type="number" id="inputP" value="50" min="1" max="100" onchange="calcularCuantiles()">
+                </div>
+            </div>
+
+            <div class="box-container">
+                <div class="box"><span>Cuartil Calculado</span><p id="valCuartil">-</p></div>
+                <div class="box"><span>Decil Calculado</span><p id="valDecil">-</p></div>
+                <div class="box"><span>Percentil Calculado</span><p id="valPercentil">-</p></div>
+            </div>
+        </div>
+
+        <!-- Pestaña 2: Gráficas -->
+        <div id="tabGraficas" class="tab-content">
+            <div class="grid-graficas">
+                <div class="card-chart">
+                    <h3>Histograma y Polígono de Frecuencia</h3>
+                    <canvas id="chart1"></canvas>
+                </div>
+                <div class="card-chart">
+                    <h3>Polígono de Frecuencia y Suavizado</h3>
+                    <canvas id="chart2"></canvas>
+                </div>
+                <div class="card-chart">
+                    <h3>Frecuencia Relativa (%)</h3>
+                    <canvas id="chart3"></canvas>
+                </div>
+                <div class="card-chart">
+                    <h3>Gráfica de Caja y Bigote (Boxplot)</h3>
+                    <div id="boxPlotSvg" class="svg-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pestaña 3: Historial Completo (Tabla) -->
+        <div id="historial" class="tab-content" style="margin-top: 30px; padding: 20px; background: #fff; border-radius: 8px;">
+            <h3>Historial de Ejercicios Realizados</h3>
+            <!-- Barra de búsqueda rápida para la tabla -->
+            <div style="margin-bottom: 15px;">
+            <input type="text" id="inputBusquedaTabla" placeholder="🔍 Escribe para buscar por nombre, datos o fecha..." onkeyup="filtrarTablaHistorial()" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccc; font-size: 14px; outline: none;">
+            </div>
+            <!-- Botones de Exportación -->
+            <div style="margin-bottom: 15px; display: flex; gap: 10px;">
+            <button onclick="exportarAPDF()" style="background-color: #d9534f; color: white; padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
+             📥 Exportar a PDF
+            </button>
+            <button onclick="exportarAExcel()" style="background-color: #5cb85c; color: white; padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
+            📊 Exportar a Excel
+             </button>
+             </div>
+            <table border="1" style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                <thead style="background: #f2f2f2;">
+                    <tr>
+                        <th style="padding: 8px;">ID</th>
+                        <th style="padding: 8px;">Nombre</th>
+                        <th style="padding: 8px;">Datos Ingresados</th>
+                        <th style="padding: 8px;">Total</th>
+                        <th style="padding: 8px;">Fecha</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaHistorialBody">
+                    <!-- Los datos de la base de datos aparecerán aquí automáticamente -->
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+</div>
+
+<!-- Botón Flotante Circular -->
+<button id="chat-toggle-btn" onclick="toggleChat()" style="position: fixed; bottom: 20px; right: 25px; width: 60px; height: 60px; border-radius: 50%; background-color: #2563eb; color: white; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.3); cursor: pointer; font-size: 24px; z-index: 9999; display: flex; align-items: center; justify-content: center;">
+    🤖
+</button>
+
+<!-- Ventana Desplegable del Chat Optimizada -->
+<div id="chat-box" style="display: none; position: fixed; bottom: 90px; right: 25px; width: 320px; height: 400px; max-height: 70vh; background-color: #ffffff; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); z-index: 9999; flex-direction: column; overflow: hidden; font-family: sans-serif; border: 1px solid #e5e7eb;">
+    
+    <div style="background-color: #2563eb; color: white; padding: 12px 16px; font-weight: bold; display: flex; justify-content: space-between; align-items: center;">
+        <span>Asistente Estadístico IA</span>
+        <button onclick="document.getElementById('chat-box').style.display='none'" style="background: none; border: none; color: white; font-size: 18px; cursor: pointer;">✕</button>
+    </div>
+
+    <div id="chat-messages" style="flex: 1; padding: 12px; overflow-y: auto; background-color: #f9fafb; display: flex; flex-direction: column; gap: 8px;">
+        <div style="background-color: #e5e7eb; padding: 8px 12px; border-radius: 8px; max-width: 85%; align-self: flex-start; font-size: 14px; color: #1f2937;">
+            ¡Hola! Procesa un conjunto de datos y pregúntame lo que quieras sobre la moda, media o análisis.
+        </div>
+    </div>
+
+    <form onsubmit="enviarPreguntaIA(event)" style="display: flex; border-top: 1px solid #e5e7eb; padding: 8px; background-color: white;">
+        <input type="text" id="chat-input" placeholder="Haz una pregunta sobre tus datos..." style="flex: 1; border: 1px solid #d1d5db; padding: 8px 12px; border-radius: 6px; outline: none; font-size: 14px;" required />
+        <button type="submit" style="margin-left: 6px; background-color: #2563eb; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold;">➢</button>
+    </form>
+</div>
+
+<script src="estadistica.js"></script>
+
+</body>
+</html>
